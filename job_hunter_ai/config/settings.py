@@ -4,7 +4,6 @@ from dotenv import load_dotenv  # type: ignore
 
 load_dotenv() # Load variables from .env
 
-# ... existing code ...
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -12,8 +11,9 @@ ALLOWED_HOSTS = []
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-DEBUG = True
+AUTH_USER_MODEL = 'users.CustomUser'
 
+DEBUG = True
 
 # Application definition
 INSTALLED_APPS = [
