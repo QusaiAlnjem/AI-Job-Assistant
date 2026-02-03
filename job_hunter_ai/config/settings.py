@@ -11,6 +11,10 @@ ALLOWED_HOSTS = []
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
+LLM_API_KEY = os.environ.get('LLM_API_KEY')
+ENDPOINT = "https://qusaihub7213425342.services.ai.azure.com/openai/v1/"
+MODEL_NAME = "DeepSeek-V3.2"
+
 AUTH_USER_MODEL = 'users.CustomUser'
 
 DEBUG = True
@@ -23,8 +27,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    # Third party
     'rest_framework',
 
     # Local apps

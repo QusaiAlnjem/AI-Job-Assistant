@@ -3,6 +3,7 @@ from rest_framework import viewsets, parsers
 from rest_framework.permissions import IsAuthenticated
 from .models import Resume
 from .serializers import ResumeSerializer
+from .services import extract_text_from_file, parse_resume_with_ai
 
 class ResumeViewSet(viewsets.ModelViewSet):
     """
@@ -17,8 +18,16 @@ class ResumeViewSet(viewsets.ModelViewSet):
         return Resume.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # Automatically assign the uploader as the owner of the resume
-        serializer.save(user=self.request.user)
-        
-        # NOTE: This is where we will trigger the AI parsing later!
-        # e.g., process_resume_task.delay(resume.id)
+        instance = serializer.save(user=self.request.user)
+        filepath = instance.file.path
+        raw_text = extract_text_from_file(filepath)
+        if raw_text:
+            instance.raw_text = raw_text
+            ai_data = parse_resume_with_ai(raw_text)
+            
+            if ai_data:
+                instance.structured_data = ai_data
+                
+            instance.save()
+
+
