@@ -1,33 +1,102 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.views import APIView
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import get_user_model
+from rest_framework.throttling import AnonRateThrottle
+from django.contrib.auth import get_user_model, authenticate
 from .serializers import RegisterSerializer, UserSerializer
+import requests
 
 User = get_user_model()
 
-# 1. Registration View
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny] # Anyone can sign up
     serializer_class = RegisterSerializer
+    authentication_classes = []
 
-# 2. Custom Login View (returns User ID with Token)
-class CustomLoginView(ObtainAuthToken):
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+    def create(self, request, *args, **kwargs):
+        recaptcha_token = request.data.get('captchaToken')
+        if not recaptcha_token:
+            return Response(
+                {'error': 'CAPTCHA verification is required.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:    
+            google_response = requests.post(
+                'https://www.google.com/recaptcha/api/siteverify',
+                data={
+                    'secret': '6Ld2mmQsAAAAAPD7h_rarPqbVzqjF3zrJQPaIqq6',
+                    'response': recaptcha_token
+                }
+            )
+            result = google_response.json()
+
+            if not result.get('success'):
+                return Response(
+                    {'error': 'Invalid CAPTCHA. Please try again.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Exception as e:
+            print(f"CAPTCHA Error: {e}")
+            return Response(
+                {'error': 'Error verifying CAPTCHA. Please try again later.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'username': user.username
-        })
 
-# 3. Profile View (Get/Update Current User)
+        # 1. Save the User
+        user = serializer.save()
+
+        # 2. Create (or get) the Token for this user
+        token, created = Token.objects.get_or_create(user=user)
+
+        # 3. Create a custom response with the token
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                "success": True,
+                "user_id": user.pk,
+                "username": user.username,
+                "email": user.email,
+                "token": token.key,
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    # Security Parameter: 5 attempts per minute
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        
+        # Authenticate checks the DB for this user/pass combo
+        user = authenticate(username=username, password=password)
+        
+        if user:
+            # Generate or Retrieve the Token
+            token, _ = Token.objects.get_or_create(user=user)
+            
+            return Response({
+                "token": token.key,      # Frontend needs this!
+                "user_id": user.pk,
+                "username": user.username
+            })
+        else:
+            return Response(
+                {"error": "Invalid Credentials"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 class ProfileView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]

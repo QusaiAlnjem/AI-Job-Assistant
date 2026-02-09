@@ -4,17 +4,11 @@ import json
 from openai import OpenAI
 from django.conf import settings
 
-def search_and_save_jobs(job_query):
-    """
-    1. Calls the scraper.
-    2. Saves results to the DB.
-    3. Returns the list of Job objects created/found.
-    """
-    raw_jobs = scrape_weworkremotely(job_query)
+def search_and_save_jobs(title, location, job_type):
+    raw_jobs = scrape_weworkremotely(title, location, job_type)
+    
     saved_jobs = []
-
     for j in raw_jobs:
-        # update_or_create prevents duplicates based on the URL
         job_obj, created = Job.objects.update_or_create(
             url=j['url'],
             defaults={
@@ -25,9 +19,7 @@ def search_and_save_jobs(job_query):
             }
         )
         saved_jobs.append(job_obj)
-    
     return saved_jobs
-
 
 client = OpenAI(api_key=settings.LLM_API_KEY, base_url=settings.ENDPOINT)
 def analyze_job_match(user, resume, job):
@@ -43,7 +35,12 @@ def analyze_job_match(user, resume, job):
     print(f"Analyzing match: {job.title} vs {user.username}'s Resume...")
 
     prompt = f"""
-    Act as a Hiring Manager. Compare this candidate to the job description.
+    Role:
+    Hiring Manager Task: Evaluate the Candidate's Resume against the Job Description.
+    Constraint:
+    Be lenient regarding software specifics.
+    Prioritize underlying skills over exact tool matches (e.g., treat DaVinci Resolve proficiency as applicable for Premiere Pro requirements).
+    Assume minor resume gaps may be due to brevity.
     
     JOB DESCRIPTION:
     {job.description[:3000]} 

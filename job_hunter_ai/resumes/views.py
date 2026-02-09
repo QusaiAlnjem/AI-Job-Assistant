@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, parsers
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
 from .models import Resume
 from .serializers import ResumeSerializer
 from .services import extract_text_from_file, parse_resume_with_ai
@@ -10,6 +11,7 @@ class ResumeViewSet(viewsets.ModelViewSet):
     API endpoint that allows resumes to be viewed or edited.
     """
     serializer_class = ResumeSerializer
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated] # Only logged-in users can upload
     parser_classes = [parsers.MultiPartParser, parsers.FormParser] # Tells Django to expect a file upload, not text
 

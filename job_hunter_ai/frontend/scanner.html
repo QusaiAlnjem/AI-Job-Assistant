@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Find Matching Jobs - JobHunter AI</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <style>
+        .search-container { max-width: 600px; margin: 60px auto; text-align: center; }
+        .search-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; }
+        .input-group input, .input-group select { width: 100%; padding: 12px 15px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 1rem; }
+        .hidden { display: none; }
+        
+        /* Resume Status Styles */
+        .resume-status { padding: 15px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; margin-bottom: 20px; text-align: left; }
+        .resume-status.missing { background: #fef2f2; border-color: #fecaca; }
+        .resume-status i { margin-right: 8px; }
+        
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div class="logo">JobHunter AI</div>
+            <div class="nav-links">
+                <a href="dashboard.html" class="btn-text">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="search-container">
+            <h1>Let AI Find Your Next Role</h1>
+            
+            <div class="search-box">
+                <div id="resume-section" class="resume-status">
+                    Loading Profile...
+                </div>
+
+                <form id="searchForm" class="hidden">
+                    
+                    <div class="input-group">
+                        <label for="jobTitle">Job Title</label>
+                        <input type="text" id="jobTitle" placeholder="e.g. Backend Developer" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="jobType">Work Type</label>
+                        <select id="jobType">
+                            <option value="remote">Remote Only</option>
+                            <option value="hybrid">Hybrid</option>
+                            <option value="onsite">On-Site</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group hidden" id="location-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" placeholder="e.g. New York, London">
+                    </div>
+
+                    <button type="submit" class="btn btn-large" style="width: 100%;">
+                        Start AI Scan
+                    </button>
+                </form>
+
+                <div id="loading-state" class="hidden" style="margin-top: 30px;">
+                    <div class="spinner"></div>
+                    <h3>Scanning the web...</h3>
+                    <p class="text-small text-muted">Analyzing job descriptions against your resume...</p>
+                </div>
+                
+                <div id="error-message" class="error hidden" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="assets/js/scanner.js"></script>
+</body>
+</html>

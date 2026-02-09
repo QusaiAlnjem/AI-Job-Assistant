@@ -11,4 +11,4 @@ class JobMatchSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobMatch
-        fields = ['id', 'job', 'match_score', 'ai_analysis', 'created_at']
+        fields = '__all__'

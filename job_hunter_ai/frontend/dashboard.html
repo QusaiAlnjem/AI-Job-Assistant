@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - JobHunter AI</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div class="logo">JobHunter AI</div>
+            <div class="nav-links">
+                <span>Welcome, <b id="user-name">Loading...</b></span>
+                <button id="logoutBtn" class="btn-text">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-grid">
+        
+        <aside class="sidebar">
+            <a href="scanner.html" class="btn btn-large">
+                <i class="fas fa-plus-circle"></i> New Scan
+            </a>
+            <div class="menu">
+                <a href="#" class="active"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a href="job_check.html"><i class="fas fa-check-double"></i> Job Check</a>
+                <a href="profile.html"><i class="fas fa-user"></i> My Profile</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <h3>Total Matches</h3>
+                    <p class="number" id="stat-total">--</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Interviews</h3>
+                    <p class="number" id="stat-interview">--</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Offers</h3>
+                    <p class="number" id="stat-offer">--</p>
+                </div>
+            </div>
+
+            <div class="tracker-section">
+                <h2>Application Tracker</h2>
+                <div class="table-responsive">
+                    <table class="job-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Role</th>
+                                <th>Date Scanned</th>
+                                <th>Match Score</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="job-list">
+                            <tr><td colspan="6" style="text-align:center;">Loading your jobs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="assets/js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Profile - JobHunter AI</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div class="logo">JobHunter AI</div>
+            <div class="nav-links">
+                <a href="dashboard.html" class="btn-text">Dashboard</a>
+                <button id="logoutBtn" class="btn-text">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-grid">
+        
+        <aside class="sidebar">
+            <a href="scanner.html" class="btn btn-large">
+                <i class="fas fa-plus-circle"></i> New Scan
+            </a>
+            <div class="menu">
+                <a href="dashboard.html"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a href="job_check.html"><i class="fas fa-check-double"></i> Job Check</a>
+                <a href="profile.html" class="active"><i class="fas fa-user"></i> My Profile</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <h2>My Profile</h2>
+            
+            <div class="card" style="background: white; padding: 30px; border-radius: 8px; margin-top: 20px;">
+                <h3 style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                    Resume Settings
+                </h3>
+
+                <div id="current-resume-section" class="hidden" style="margin-bottom: 30px;">
+                    <p style="margin-bottom: 10px;"><strong>Active Resume:</strong></p>
+                    <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <i class="fas fa-file-pdf" style="font-size: 2rem; color: #ef4444;"></i>
+                        <div>
+                            <p id="resume-name" style="font-weight: 600;"></p>
+                            <p id="resume-date" style="font-size: 0.85rem; color: #64748b;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="no-resume-message" style="display: block; padding: 20px; background: #fff1f2; color: #9f1239; border-radius: 6px; margin-bottom: 20px;">
+                    <i class="fas fa-exclamation-circle"></i> You haven't uploaded a resume yet.
+                </div>
+
+                <form id="resumeForm">
+                    <div class="form-group">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Upload New Resume (PDF/DOCX)</label>
+                        <input type="file" id="resumeFile" accept=".pdf,.docx" style="padding: 10px; border: 1px solid #ccc; width: 100%; border-radius: 6px;">
+                    </div>
+                    <button type="submit" class="btn" style="margin-top: 15px;">Upload & Analyze</button>
+                    <p id="upload-status" style="margin-top: 10px; font-size: 0.9rem;"></p>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="assets/js/profile.js"></script>
+    
+    <script type="module">
+        import { logout } from './assets/js/auth.js';
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+    </script>
+</body>
+</html>

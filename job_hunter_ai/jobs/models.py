@@ -27,6 +27,14 @@ class JobMatch(models.Model):
     resume = models.ForeignKey(Resume, on_delete=models.SET_NULL, null=True)
     match_score = models.IntegerField(default=0) # AI scoring from 0 to 100
     ai_analysis = models.JSONField(default=dict) # Structured advice from AI
+    STATUS_CHOICES = [
+        ('NEW', 'New Match'),
+        ('APPLIED', 'Applied'),
+        ('INTERVIEW', 'Interviewing'),
+        ('OFFER', 'Offer Received'),
+        ('REJECTED', 'Rejected'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
