@@ -41,7 +41,7 @@
 | Component | Technology |
 |-----------|------------|
 | **Backend** | Python, Django, Django REST Framework (DRF) |
-| **Database** | SQLite (Dev) / PostgreSQL (Prod) |
+| **Database** | PostgreSQL |
 | **Scraping** | Playwright (Headless Browser) |
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript (ES6 Modules) |
 | **Auth** | Token-based Authentication |
