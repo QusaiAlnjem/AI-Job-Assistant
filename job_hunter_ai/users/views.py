@@ -7,6 +7,7 @@ from rest_framework.throttling import AnonRateThrottle
 from django.contrib.auth import get_user_model, authenticate
 from .serializers import RegisterSerializer, UserSerializer
 import requests
+from django.conf import settings
 
 User = get_user_model()
 
@@ -28,7 +29,7 @@ class RegisterView(generics.CreateAPIView):
             google_response = requests.post(
                 'https://www.google.com/recaptcha/api/siteverify',
                 data={
-                    'secret': '6Ld2mmQsAAAAAPD7h_rarPqbVzqjF3zrJQPaIqq6',
+                    'secret': settings.RECAPTCHA_SECRET_KEY,
                     'response': recaptcha_token
                 }
             )

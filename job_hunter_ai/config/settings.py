@@ -16,6 +16,8 @@ MODEL_NAME = "DeepSeek-V3.2"
 
 AUTH_USER_MODEL = 'users.CustomUser'
 
+RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY')
+
 DEBUG = True
 
 # Application definition
