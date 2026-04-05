@@ -1,14 +1,26 @@
 from .models import Job, JobMatch
-from .scraper import scrape_weworkremotely
+from .scraper import scrape_weworkremotely, scrape_indeed, scrape_linkedin
 import json
 from openai import OpenAI
 from django.conf import settings
 
 def search_and_save_jobs(title, location, job_type):
-    raw_jobs = scrape_weworkremotely(title, location, job_type)
+    all_jobs = []
+    
+    # 1. WeWorkRemotely
+    wwr_jobs = scrape_weworkremotely(title, location, job_type)
+    all_jobs.extend(wwr_jobs)
+    
+    # 2. Indeed
+    indeed_jobs = scrape_indeed(title, location)
+    all_jobs.extend(indeed_jobs)
+    
+    # 3. LinkedIn
+    linkedin_jobs = scrape_linkedin(title, location)
+    all_jobs.extend(linkedin_jobs)
     
     saved_jobs = []
-    for j in raw_jobs:
+    for j in all_jobs:
         job_obj, created = Job.objects.update_or_create(
             url=j['url'],
             defaults={

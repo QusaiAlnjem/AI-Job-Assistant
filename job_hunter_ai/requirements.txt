@@ -1,3 +1,4 @@
 django
 djangorestframework
 python-dotenv
+scrapling==0.4.2

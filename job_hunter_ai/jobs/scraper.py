@@ -1,8 +1,7 @@
-import time
-import random
+import re
 import urllib.parse
-from playwright.sync_api import sync_playwright
 import pycountry
+from scrapling.fetchers import StealthySession
 
 # --- Helper to find Country Code ---
 def get_country_code(location_name):
@@ -12,85 +11,211 @@ def get_country_code(location_name):
         return None
 
 def scrape_weworkremotely(title, location, job_type):
-    print(f"Starting Scraper for: {title}...")
+    print(f"Starting WWR Scraper for: {title}...")
     results = []
     
-    # 1. Build URL
     base_url = "https://weworkremotely.com/remote-jobs/search"
     query_str = urllib.parse.quote_plus(title)
     if job_type != 'remote' and location:
          query_str += f"+{urllib.parse.quote_plus(location)}"
     full_search_url = f"{base_url}?term={query_str}"
-    print(f"Accessing URL: {full_search_url}")
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True) 
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        )
-        page = context.new_page()
-
+    
+    # Using StealthySession to maintain state and speed up subsequent description fetches
+    with StealthySession(headless=True) as session:
         try:
-            page.goto(full_search_url, wait_until="domcontentloaded", timeout=15000)
+            page = session.fetch(full_search_url, network_idle=True)
+            job_rows = page.css("section.jobs ul li")
             
-            try:
-                page.wait_for_selector("section.jobs ul li", timeout=5000)
-                print("content loaded successfully.")
-            except Exception as e:
-                print("Timeout: Job list did not appear on page.")
-
-            job_rows = page.query_selector_all("section.jobs ul li")
-            
-            print(f"Found {len(job_rows)} list items. Filtering for real jobs...")
-
             for row in job_rows[:5]:
-                # Skip "View All" buttons or Ads (they usually have class 'view-all' or no anchor)
-                if "view-all" in row.get_attribute("class") or "ad" in row.get_attribute("class"):
+                row_class = row.css("::attr(class)").get() or ""
+                if "view-all" in row_class or "ad" in row_class:
                     continue
 
-                link_elem = row.query_selector("a")
-                href = link_elem.get_attribute("href")
+                href = row.css("a::attr(href)").get()
+                job_title = row.css("h3::text").get()
+                company = row.css(".new-listing__company-name::text").get()
 
-                title_elem = row.query_selector("h3")
-                company_elem = row.query_selector(".new-listing__company-name")
-
-                if not title_elem or not company_elem:
+                if not job_title or not company or not href:
                     continue
 
-                job_title = title_elem.inner_text().strip()
-                company = company_elem.inner_text().strip()
                 full_link = f"https://weworkremotely.com{href}"
 
-                print(f"-> Found Real Job: {job_title} at {company}")
-
-                # Get Description
                 try:
-                    job_page = context.new_page()
-                    job_page.goto(full_link, wait_until="domcontentloaded", timeout=10000)
+                    job_page = session.fetch(full_link)
+                    desc_elem = job_page.css("#job-listing-show-container")
+                    if not desc_elem: 
+                        desc_elem = job_page.css(".listing-container")
                     
-                    desc_elem = job_page.query_selector("#job-listing-show-container")
-                    if not desc_elem: desc_elem = job_page.query_selector(".listing-container")
-                    
-                    description = desc_elem.inner_text() if desc_elem else "No description available."
+                    description = " ".join(desc_elem.css("::text").getall()).strip() if desc_elem else "No description available."
                     
                     results.append({
-                        "title": job_title,
-                        "company": company,
+                        "title": job_title.strip(),
+                        "company": company.strip(),
                         "url": full_link,
                         "description": description,
                         "source": "WeWorkRemotely"
                     })
-                    job_page.close()
-                    
                 except Exception as e:
-                    print(f"Error fetching description: {e}")
-                    job_page.close()
-                    continue
-
+                    print(f"Error fetching WWR description: {e}")
+                    
         except Exception as e:
-            print(f"Scraping Error: {e}")
+            print(f"WWR Scraping Error: {e}")
 
-        browser.close()
-        
-    print(f"Scraping Complete. Returning {len(results)} jobs.")
     return results
+
+def scrape_indeed(title, location):
+    print(f"Starting Indeed Scraper for: {title}...")
+    results = []
+    base_url = "https://www.indeed.com/jobs"
+    query_str = f"?q={urllib.parse.quote_plus(title)}"
+    if location:
+        query_str += f"&l={urllib.parse.quote_plus(location)}"
+    
+    full_search_url = base_url + query_str
+    
+    with StealthySession(headless=True) as session:
+        try:
+            page = session.fetch(full_search_url, network_idle=True)
+            job_rows = page.css('div.job_seen_beacon')[:5] 
+            
+            for row in job_rows:
+                job_title = row.css('h2.jobTitle span::text').get()
+                company = row.css('[data-testid="company-name"]::text').get()
+                href = row.css('h2.jobTitle a::attr(href)').get()
+                
+                if not job_title or not href:
+                    continue
+                
+                # --- THE FIX: Extract Job Key to bypass JS redirects ---
+                jk_match = re.search(r'jk=([a-zA-Z0-9]+)', href)
+                if jk_match:
+                    jk = jk_match.group(1)
+                    # Build the direct, SEO-friendly URL
+                    full_link = f"https://www.indeed.com/viewjob?jk={jk}"
+                else:
+                    # Fallback
+                    full_link = f"https://www.indeed.com{href}" if href.startswith('/') else href
+                
+                try:
+                    job_page = session.fetch(full_link)
+                    
+                    # Extract text
+                    desc_elem = job_page.css("#jobDescriptionText")
+                    description = " ".join(desc_elem.css("::text").getall()).strip() if desc_elem else ""
+                    
+                    # --- DEBUGGING SAFETY NET ---
+                    if not description:
+                        print(f"  [!] Description empty for {full_link}. Saving HTML to debug...")
+                        with open("indeed_debug_page.html", "w", encoding="utf-8") as f:
+                            f.write(job_page.text)
+                    
+                    results.append({
+                        "title": job_title.strip(),
+                        "company": company.strip() if company else "Unknown",
+                        "url": full_link,
+                        "description": description or "No description available.",
+                        "source": "Indeed"
+                    })
+                except Exception as e:
+                    print(f"Error fetching Indeed description: {e}")
+                    
+        except Exception as e:
+            print(f"Indeed Scraping Error: {e}")
+            
+    return results
+
+def scrape_linkedin(title, location):
+    print(f"Starting LinkedIn Scraper for: {title}...")
+    results = []
+    base_url = "https://www.linkedin.com/jobs/search"
+    query_str = f"?keywords={urllib.parse.quote_plus(title)}"
+    if location:
+        query_str += f"&location={urllib.parse.quote_plus(location)}"
+        
+    full_search_url = base_url + query_str
+        
+    with StealthySession(headless=True) as session:
+        try:
+            page = session.fetch(full_search_url, network_idle=True)
+            job_rows = page.css('ul.jobs-search__results-list li')[:5]
+            
+            for row in job_rows:
+                job_title = row.css('h3.base-search-card__title::text').get()
+                company = row.css('h4.base-search-card__subtitle a::text').get()
+                href = row.css('a.base-card__full-link::attr(href)').get()
+                
+                if not job_title or not href:
+                    continue
+                
+                clean_url = href.split('?')[0]
+                
+                try:
+                    job_page = session.fetch(clean_url)
+                    
+                    # 2. FALLBACK SELECTORS FOR DYNAMIC HTML
+                    # It will try these one by one until it finds the description
+                    selectors_to_try = [
+                        '[data-testid="expandable-text-box"]',  # From your screenshot
+                        'div.show-more-less-html__markup',      # Classic LinkedIn layout
+                        'div.jobs-description-content__text',   # Alternate layout
+                        'article'                               # Broad fallback
+                    ]
+                    
+                    description = ""
+                    for selector in selectors_to_try:
+                        desc_elem = job_page.css(selector)
+                        if desc_elem:
+                            raw_text_list = desc_elem.css("::text").getall()
+                            description = " ".join([text.strip() for text in raw_text_list if text.strip()])
+                            
+                            if description:
+                                break 
+                    
+                    if not description:
+                        print(f"  [!] No description found for '{job_title}'. Skipping job.")
+                        continue
+
+                    results.append({
+                        "title": job_title.strip(),
+                        "company": company.strip() if company else "Unknown",
+                        "url": clean_url,
+                        "description": description or "No description available.",
+                        "source": "LinkedIn"
+                    })
+                except Exception as e:
+                    print(f"Error fetching LinkedIn description: {e}")
+                    
+        except Exception as e:
+            print(f"LinkedIn Scraping Error: {e}")
+            
+    return results
+
+if __name__ == "__main__":
+    import json
+    
+    print("--- Starting Scraper Tests ---")
+    
+    test_title = "AI Engineer"
+    test_location = "United Arab Emirates"
+    test_type = "On-site"
+    
+    # --- Test 1: WeWorkRemotely ---
+    print("\n[1] Testing WeWorkRemotely...")
+    wwr_results = scrape_weworkremotely(test_title, test_location, test_type)
+    for i, job in enumerate(wwr_results, 1):
+        print(f"  {i}. {job['title']} | {job['company']}\nDesc: {job['description']}\nURL: {job['url']}")
+        
+    # --- Test 2: Indeed ---
+    print("\n[2] Testing Indeed...")
+    indeed_results = scrape_indeed(test_title, test_location)
+    for i, job in enumerate(indeed_results, 1):
+        print(f"  {i}. {job['title']} | {job['company']}\nDesc: {job['description']}\nURL: {job['url']}")
+        
+    # --- Test 3: LinkedIn ---
+    print("\n[3] Testing LinkedIn...")
+    linkedin_results = scrape_linkedin(test_title, test_location)
+    for i, job in enumerate(linkedin_results, 1):
+        print(f"  {i}. {job['title']} | {job['company']}\nDesc: {job['description']}\nURL: {job['url']}")
+        
+    print("\n--- Testing Complete ---")
+    
